@@ -1,0 +1,9 @@
+gradio>=4.0
+opencv-python
+pillow
+fonttools
+svg.path
+potracer
+reportlab
+pyzbar
+numpy

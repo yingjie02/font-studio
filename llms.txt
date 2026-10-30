@@ -1,0 +1,60 @@
+# Font Studio (字体工坊)
+
+> Local GUI that turns handwritten Chinese character scans into a TTF font.
+> A modern Python 3 rewrite of wefont: Gradio UI + fonttools replace
+> Python 2.7 + FontForge. Adds per-glyph resume, template cache,
+> single-glyph tuning, and folder-as-state (png_confirmed / png_unconfirmed).
+
+## Problem it solves
+
+Existing tools for making a Chinese handwriting font:
+- wefont (original) - Python 2.7, FontForge, CLI only, all-or-nothing pipeline
+- Handwright - backend-focused, less GUI-oriented
+- Commercial apps - cloud upload required
+
+Font Studio is for people who:
+- Have a scanned handwritten template and want a local TTF
+- Need to resume after interruption without reprocessing every glyph
+- Want to tune individual glyphs (position / scale) with live preview
+- Prefer folder-based state (move a PNG to confirm it) over DB-only flags
+
+## Key design choices
+
+- Per-glyph state stored in SQLite: png_mtime, svg_mtime, font_mtime
+- Incremental vectorization: only PNGs newer than their SVG re-run potrace
+- Folder-as-state: confirmed glyphs live in data/png_confirmed/, others in
+  data/png_unconfirmed/; moving files is equivalent to confirming in the UI
+- 6-tab Gradio UI: template / scans / png / adjust / export / preview
+- Template PDF mirrors wefont's layout: 180x260mm, 3 finders, 2x2-cell QR
+- Docker (ghcr.io/yingjie02/wefont-docker:latest) used only for scan
+  extraction (OpenCV + pyzbar + perspective correction); other tabs run
+  without Docker
+- Font assembly: fontTools + cu2qu, fixed 800-unit scale, centered in
+  1000-unit em, lsb = glyph.xMin, forced contour reversal for correct fill
+
+## Files
+
+app.py                       Gradio entry
+core/db.py                   SQLite, folder sync, backup/restore
+core/paths.py                dev vs PyInstaller path resolution
+core/template.py             wefont-compatible PDF generation
+core/vectorize.py            potrace PNG -> SVG (incremental)
+core/assemble.py             fontTools SVG -> TTF (fixed scale + lsb)
+core/extract.py              Docker call for scan extraction
+core/preview.py              glyph thumbnails for UI
+ui/tab_*.py                  one file per tab
+setup_assets.py              export finder.png + fireflysung.ttf + charsets from image
+reset.py                     wipe data/ for a clean restart
+
+## External resources
+
+- wefont:          https://github.com/wenzhenl/wefont
+- wefont-docker:   https://github.com/yingjie02/wefont-docker
+- Docker image:    ghcr.io/yingjie02/wefont-docker:latest
+- Charsets:        GB2312 (6763 chars) + top 1k/2k/3k/4k frequency lists
+
+## Requirements
+
+- Python 3.10+
+- Docker Desktop (only for Tab 2, scan extraction)
+- Windows / macOS / Linux
